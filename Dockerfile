@@ -1,10 +1,10 @@
-FROM python:3.12-alpine
+FROM python:3.12-slim
 
-# squeezelite: klient SlimProto, rejestruje się w LMS jako player
-# (jeśli w Twojej wersji Alpine go brak w repo "community", odkomentuj
-# poniższą linię, żeby dołączyć repo edge/community)
-# RUN echo "http://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories
-RUN apk add --no-cache squeezelite bash \
+# squeezelite jest spakietowany dla Debiana/Ubuntu, NIE ma go w oficjalnych
+# repo Alpine - stąd zmiana bazowego obrazu z alpine na slim (Debian).
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends squeezelite \
+    && rm -rf /var/lib/apt/lists/* \
     && pip install --no-cache-dir aiosendspin zeroconf
 
 COPY entrypoint.sh /entrypoint.sh
