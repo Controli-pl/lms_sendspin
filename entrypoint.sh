@@ -9,15 +9,30 @@ set -e
 : "${SENDSPIN_PORT:=8927}"
 : "${SENDSPIN_NAME:=LMS via Sendspin}"
 
-echo "[entrypoint] LMS ${LMS_HOST}:${LMS_PORT} -> squeezelite(${PLAYER_NAME}) -> aiosendspin(${SENDSPIN_NAME}:${SENDSPIN_PORT})"
+FIFO=/tmp/lms_pcm.fifo
 
-# -o -        : audio na stdout zamiast na kartę dźwiękową (nic nie leci na dysk)
-# -c pcm      : wymuszamy PCM
-# -r RATE-RATE: sztywny sample rate, żeby glue.py nie musiał negocjować formatu
+# FIFO to specjalny plik - dane w nim żyją wyłącznie w buforze jądra,
+# niezależnie od tego, na jakim systemie plików leży katalog /tmp.
+# Nic z audio nie trafia na SSD.
+rm -f "$FIFO"
+mkfifo "$FIFO"
+
+cleanup() {
+    echo "[entrypoint] Zatrzymuję squeezelite (PID ${SQUEEZELITE_PID:-?})"
+    [ -n "${SQUEEZELITE_PID:-}" ] && kill "$SQUEEZELITE_PID" 2>/dev/null || true
+    rm -f "$FIFO"
+}
+trap cleanup EXIT TERM INT
+
+echo "[entrypoint] LMS ${LMS_HOST}:${LMS_PORT} -> squeezelite(${PLAYER_NAME}) -> FIFO -> sendspin serve(${SENDSPIN_NAME}:${SENDSPIN_PORT})"
+
+# squeezelite w tle: rejestruje się w LMS, dekoduje do PCM, pisze na stdout,
+# co przekierowujemy do FIFO. Cały czas w RAM, nie na dysku.
 #
-# UWAGA: dokładne flagi zweryfikuj przez `squeezelite -h` w kontenerze -
-# różne buildy mają drobne różnice w dostępnych opcjach -o.
-exec squeezelite \
+# Flagi zweryfikowane przez `squeezelite -h` w tym obrazie:
+# -o - (stdout), -a 16 (16-bit na stdout), -c pcm (wymuszony PCM),
+# -r RATE-RATE (sztywny sample rate).
+squeezelite \
     -s "${LMS_HOST}:${LMS_PORT}" \
     -n "${PLAYER_NAME}" \
     -m "${PLAYER_MAC}" \
@@ -25,7 +40,21 @@ exec squeezelite \
     -a 16 \
     -c pcm \
     -r "${SAMPLE_RATE}-${SAMPLE_RATE}" \
-    | python3 /glue.py \
-        --sample-rate "${SAMPLE_RATE}" \
-        --sendspin-port "${SENDSPIN_PORT}" \
-        --sendspin-name "${SENDSPIN_NAME}"
+    > "$FIFO" &
+SQUEEZELITE_PID=$!
+
+echo "[entrypoint] squeezelite wystartował (PID ${SQUEEZELITE_PID}), startuję sendspin serve..."
+
+# *** DO ZWERYFIKOWANIA PRZED PRODUKCYJNYM UŻYCIEM ***
+# Nazwa polecenia/flag "sendspin serve" poniżej to najlepsza rekonstrukcja z
+# dostępnej dokumentacji (podkomenda `serve`, tzw. "Sendspin Party" z
+# konfigurowalnym `source`/`port`/`name`) - nie miałem potwierdzonego 1:1
+# `--help` z tego pakietu. W kontenerze sprawdź realne flagi:
+#
+#   sendspin serve --help
+#
+# i dopasuj wywołanie poniżej, jeśli nazwy się różnią.
+exec sendspin serve \
+    --source "$FIFO" \
+    --port "${SENDSPIN_PORT}" \
+    --name "${SENDSPIN_NAME}"
