@@ -45,16 +45,12 @@ SQUEEZELITE_PID=$!
 
 echo "[entrypoint] squeezelite wystartował (PID ${SQUEEZELITE_PID}), startuję sendspin serve..."
 
-# *** DO ZWERYFIKOWANIA PRZED PRODUKCYJNYM UŻYCIEM ***
-# Nazwa polecenia/flag "sendspin serve" poniżej to najlepsza rekonstrukcja z
-# dostępnej dokumentacji (podkomenda `serve`, tzw. "Sendspin Party" z
-# konfigurowalnym `source`/`port`/`name`) - nie miałem potwierdzonego 1:1
-# `--help` z tego pakietu. W kontenerze sprawdź realne flagi:
-#
-#   sendspin serve --help
-#
-# i dopasuj wywołanie poniżej, jeśli nazwy się różnią.
-exec sendspin serve \
-    --source "$FIFO" \
+# Potwierdzone przez `sendspin serve --help`:
+# - source to argument pozycyjny (nie --source)
+# - --source-format s16le mówi ffmpeg/PyAV pod spodem, że to surowy
+#   16-bit little-endian PCM (dokładnie to, co daje `squeezelite -a 16 -o -`),
+#   bo z samego FIFO (bez rozszerzenia pliku) format nie jest wykrywalny.
+exec sendspin serve "$FIFO" \
+    --source-format s16le \
     --port "${SENDSPIN_PORT}" \
     --name "${SENDSPIN_NAME}"
