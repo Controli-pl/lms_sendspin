@@ -22,6 +22,7 @@ exec squeezelite \
     -n "${PLAYER_NAME}" \
     -m "${PLAYER_MAC}" \
     -o - \
+    -a 16 \
     -c pcm \
     -r "${SAMPLE_RATE}-${SAMPLE_RATE}" \
     | python3 /glue.py \
