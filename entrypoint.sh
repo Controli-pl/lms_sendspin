@@ -40,7 +40,8 @@ squeezelite \
     -a 16 \
     -c pcm \
     -r "${SAMPLE_RATE}-${SAMPLE_RATE}" \
-    > "$FIFO" &
+    -d slimproto=info -d stream=info \
+    > "$FIFO" 2>/tmp/squeezelite.log &
 SQUEEZELITE_PID=$!
 
 echo "[entrypoint] squeezelite wystartował (PID ${SQUEEZELITE_PID}), startuję sendspin serve..."
