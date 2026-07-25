@@ -17,9 +17,17 @@ FIFO=/tmp/lms_pcm.fifo
 rm -f "$FIFO"
 mkfifo "$FIFO"
 
+# Otwieramy FIFO w trybie read-write na deskryptorze 3 - to NIGDY się nie
+# blokuje (proces trzyma jednocześnie "czytnika" i "pisarza"). Bez tego
+# squeezelite (pisze) i `sendspin serve` (czyta dopiero gdy ktoś się
+# faktycznie podłączy) wzajemnie się blokują w oczekiwaniu na otwarcie
+# drugiej strony - i squeezelite nigdy realnie nie startuje.
+exec 3<>"$FIFO"
+
 cleanup() {
     echo "[entrypoint] Zatrzymuję squeezelite (PID ${SQUEEZELITE_PID:-?})"
     [ -n "${SQUEEZELITE_PID:-}" ] && kill "$SQUEEZELITE_PID" 2>/dev/null || true
+    exec 3>&- 2>/dev/null || true
     rm -f "$FIFO"
 }
 trap cleanup EXIT TERM INT
