@@ -1,0 +1,20 @@
+version: "3.8"
+
+services:
+  lms-sendspin-bridge:
+    build: .
+    image: lms-sendspin-bridge:latest
+    container_name: lms-sendspin-bridge
+    restart: unless-stopped
+    # host_network zamiast mapowania portów: potrzebne, żeby mDNS (ogłaszanie
+    # serwera Sendspin) i SlimProto discovery działały normalnie w LAN,
+    # tak samo jak przy dodatku HA.
+    network_mode: host
+    environment:
+      LMS_HOST: "192.168.1.10"     # <- podmień na adres Twojego LMS
+      LMS_PORT: "3483"
+      PLAYER_NAME: "LMS Sendspin Bridge"
+      PLAYER_MAC: "02:00:00:00:00:01"  # <- unikalny, jeśli masz więcej instancji
+      SAMPLE_RATE: "44100"
+      SENDSPIN_PORT: "8927"
+      SENDSPIN_NAME: "LMS via Sendspin"
