@@ -11,7 +11,7 @@ services:
     # tak samo jak przy dodatku HA.
     network_mode: host
     environment:
-      LMS_HOST: "192.168.1.10"     # <- podmień na adres Twojego LMS
+      LMS_HOST: "192.168.1.122"     # <- podmień na adres Twojego LMS
       LMS_PORT: "3483"
       PLAYER_NAME: "LMS Sendspin Bridge"
       PLAYER_MAC: "02:00:00:00:00:01"  # <- unikalny, jeśli masz więcej instancji
