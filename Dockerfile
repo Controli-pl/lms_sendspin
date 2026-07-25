@@ -5,7 +5,7 @@ FROM python:3.12-slim
 RUN apt-get update \
     && apt-get install -y --no-install-recommends squeezelite \
     && rm -rf /var/lib/apt/lists/* \
-    && pip install --no-cache-dir aiosendspin zeroconf
+    && pip install --no-cache-dir aiosendspin zeroconf Pillow
 
 COPY entrypoint.sh /entrypoint.sh
 COPY glue.py /glue.py
