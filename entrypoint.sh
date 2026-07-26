@@ -52,6 +52,7 @@ squeezelite \
     -a 16 \
     -c pcm \
     -r "${SAMPLE_RATE}-${SAMPLE_RATE}" \
+    -b 80:80 \
     -d slimproto=info -d stream=info \
     > "$PCM_FIFO" \
     2>/tmp/squeezelite.log &
@@ -62,7 +63,7 @@ echo "[entrypoint] squeezelite wystartował (PID ${SQUEEZELITE_PID})"
 # (deklarujący sample rate/kanały/bitowość wprost, żeby sendspin niczego
 # nie musiał zgadywać), i pisze do WAV_FIFO. Stderr NIE jest ukrywany -
 # błędy lecą do głównego logu kontenera (`docker logs`).
-ffmpeg -hide_banner -loglevel error -y \
+ffmpeg -hide_banner -loglevel error -y -fflags nobuffer -flags low_delay -flush_packets 1 \
     -f s16le -ar "${SAMPLE_RATE}" -ac 2 -i "$PCM_FIFO" \
     -f wav "$WAV_FIFO" &
 FFMPEG_PID=$!
