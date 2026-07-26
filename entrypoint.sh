@@ -50,7 +50,6 @@ squeezelite \
     -m "${PLAYER_MAC}" \
     -o - \
     -a 16 \
-    -c pcm \
     -r "${SAMPLE_RATE}-${SAMPLE_RATE}" \
     -b 80:80 \
     -d slimproto=info -d stream=info \
