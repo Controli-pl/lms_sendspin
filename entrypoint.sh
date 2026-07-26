@@ -49,17 +49,22 @@ squeezelite \
     -c pcm \
     -r "${SAMPLE_RATE}-${SAMPLE_RATE}" \
     -d slimproto=info -d stream=info \
-    > "$FIFO" 2>/tmp/squeezelite.log &
+    2>/tmp/squeezelite.log \
+    | ffmpeg -hide_banner -loglevel error \
+        -f s16le -ar "${SAMPLE_RATE}" -ac 2 -i - \
+        -f wav - \
+    > "$FIFO" &
 SQUEEZELITE_PID=$!
 
 echo "[entrypoint] squeezelite wystartował (PID ${SQUEEZELITE_PID}), startuję sendspin serve..."
 
 # Potwierdzone przez `sendspin serve --help`:
 # - source to argument pozycyjny (nie --source)
-# - --source-format s16le mówi ffmpeg/PyAV pod spodem, że to surowy
-#   16-bit little-endian PCM (dokładnie to, co daje `squeezelite -a 16 -o -`),
-#   bo z samego FIFO (bez rozszerzenia pliku) format nie jest wykrywalny.
+# - --source-format wav: strumień w FIFO ma teraz nagłówek WAV (dodany przez
+#   ffmpeg wyżej), więc sample rate/kanały/bitowość są deklarowane w danych,
+#   a nie zgadywane przez demuxer - to naprawia spowolnione/trzeszczące audio
+#   sprzed tej zmiany (gdy używaliśmy gołego s16le bez podania rate/channels).
 exec sendspin serve "$FIFO" \
-    --source-format s16le \
+    --source-format wav \
     --port "${SENDSPIN_PORT}" \
     --name "${SENDSPIN_NAME}"
